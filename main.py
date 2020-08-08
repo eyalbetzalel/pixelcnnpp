@@ -19,7 +19,7 @@ parser.add_argument('-i', '--data_dir', type=str,
 parser.add_argument('-o', '--save_dir', type=str, default='models',
                     help='Location for parameter checkpoints and samples')
 parser.add_argument('-d', '--dataset', type=str,
-                    default='cifar', help='Can be either cifar|mnist')
+                    default='else', help='Can be either cifar|mnist')
 parser.add_argument('-p', '--print_every', type=int, default=50,
                     help='how many iterations between print statements')
 parser.add_argument('-t', '--save_interval', type=int, default=10,
@@ -54,7 +54,7 @@ assert not os.path.exists(os.path.join('runs', model_name)), '{} already exists!
 writer = SummaryWriter(log_dir=os.path.join('runs', model_name))
 
 sample_batch_size = 25
-obs = (1, 28, 28) if 'mnist' in args.dataset else (3, 32, 32)
+obs = (1, 28, 28) if 'mnist' in args.dataset else (3, 64, 64)
 input_channels = obs[0]
 rescaling     = lambda x : (x - .5) * 2.
 rescaling_inv = lambda x : .5 * x  + .5
@@ -82,8 +82,17 @@ elif 'cifar' in args.dataset :
     loss_op   = lambda real, fake : discretized_mix_logistic_loss(real, fake)
     sample_op = lambda x : sample_from_discretized_mix_logistic(x, args.nr_logistic_mix)
 else :
-    raise Exception('{} dataset not in {mnist, cifar10}'.format(args.dataset))
-
+    path_train = r"/home/dsi/eyalbetzalel/glow/GLOW/GLOW/imagenet64/imagenet64/train_64x64"
+    path_test = r"/home/dsi/eyalbetzalel/glow/GLOW/GLOW/imagenet64/imagenet64/valid_64x64"
+    print("Load ImageNet (long)")
+    trainset = datasets.ImageFolder(path_train, transform=transform)
+    train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    testset = datasets.ImageFolder(path_test, transform=transform)
+    train_loader = DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    print("Finished load ImageNet")
+    loss_op   = lambda real, fake : discretized_mix_logistic_loss(real, fake)
+    sample_op = lambda x : sample_from_discretized_mix_logistic(x, args.nr_logistic_mix)
+    
 model = PixelCNN(nr_resnet=args.nr_resnet, nr_filters=args.nr_filters, 
             input_channels=input_channels, nr_logistic_mix=args.nr_logistic_mix)
 model = model.cuda()
